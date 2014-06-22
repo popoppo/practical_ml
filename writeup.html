@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<!-- saved from url=(0014)about:internet -->
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="x-ua-compatible" content="IE=9" >
+
+<title>Practical Machine Learning - Course Project : Writeup</title>
+
+<style type="text/css">
+body, td {
+   font-family: sans-serif;
+   background-color: white;
+   font-size: 12px;
+   margin: 8px;
+}
+
+tt, code, pre {
+   font-family: 'DejaVu Sans Mono', 'Droid Sans Mono', 'Lucida Console', Consolas, Monaco, monospace;
+}
+
+h1 { 
+   font-size:2.2em; 
+}
+
+h2 { 
+   font-size:1.8em; 
+}
+
+h3 { 
+   font-size:1.4em; 
+}
+
+h4 { 
+   font-size:1.0em; 
+}
+
+h5 { 
+   font-size:0.9em; 
+}
+
+h6 { 
+   font-size:0.8em; 
+}
+
+a:visited {
+   color: rgb(50%, 0%, 50%);
+}
+
+pre {	
+   margin-top: 0;
+   max-width: 95%;
+   border: 1px solid #ccc;
+   white-space: pre-wrap;
+}
+
+pre code {
+   display: block; padding: 0.5em;
+}
+
+code.r, code.cpp {
+   background-color: #F8F8F8;
+}
+
+table, td, th {
+  border: none;
+}
+
+blockquote {
+   color:#666666;
+   margin:0;
+   padding-left: 1em;
+   border-left: 0.5em #EEE solid;
+}
+
+hr {
+   height: 0px;
+   border-bottom: none;
+   border-top-width: thin;
+   border-top-style: dotted;
+   border-top-color: #999999;
+}
+
+@media print {
+   * { 
+      background: transparent !important; 
+      color: black !important; 
+      filter:none !important; 
+      -ms-filter: none !important; 
+   }
+
+   body { 
+      font-size:12pt; 
+      max-width:100%; 
+   }
+       
+   a, a:visited { 
+      text-decoration: underline; 
+   }
+
+   hr { 
+      visibility: hidden;
+      page-break-before: always;
+   }
+
+   pre, blockquote { 
+      padding-right: 1em; 
+      page-break-inside: avoid; 
+   }
+
+   tr, img { 
+      page-break-inside: avoid; 
+   }
+
+   img { 
+      max-width: 100% !important; 
+   }
+
+   @page :left { 
+      margin: 15mm 20mm 15mm 10mm; 
+   }
+     
+   @page :right { 
+      margin: 15mm 10mm 15mm 20mm; 
+   }
+
+   p, h2, h3 { 
+      orphans: 3; widows: 3; 
+   }
+
+   h2, h3 { 
+      page-break-after: avoid; 
+   }
+}
+
+</style>
+
+
+
+
+
+</head>
+
+<body>
+<h1>Practical Machine Learning - Course Project : Writeup</h1>
+
+<h2>What method did I choose and Why?</h2>
+
+<p>From the statement of the Course Project, I thought the accuracy of prediction was more important than the calculation speed. Therefore, I chose the &ldquo;random forest&rdquo; as the training method.</p>
+
+<h2>About cross validation</h2>
+
+<p>As <a href="http://www.stat.berkeley.edu/%7Ebreiman/RandomForests/cc_home.htm#ooberr">this link</a> says,
+random forests doesn&#39;t need cross-validation, so we don&#39;t have to care about it.</p>
+
+<h2>Building model and sample error evaluation</h2>
+
+<p>Whole training data was read from pml-training.csv into pml_train,
+and I omitted some columns which had NA, non numerical data, and timestamps.
+Then pml_train was</p>
+
+<pre><code>&gt; dim(pml_train)
+[1] 19622    54
+&gt; names(pml_train)
+ [1] &quot;num_window&quot;           &quot;roll_belt&quot;            &quot;pitch_belt&quot;           &quot;yaw_belt&quot;            
+(snip)    
+[53] &quot;magnet_forearm_z&quot;     &quot;classe&quot;
+</code></pre>
+
+<p>I started at creating a small training data set with 10% of pml_train for simplification.</p>
+
+<pre><code>&gt; trIndex &lt;- createDataPartition(y = pml_train$classe, p=0.1, list=F)
+&gt; trSet &lt;- pml_train[trIndex, ]
+</code></pre>
+
+<p>Using train() with method=&ldquo;rf&rdquo;, I created a model.</p>
+
+<pre><code>&gt; modFit &lt;- train(trSet$classe ~., data=pml_train, method=&quot;rf&quot;)
+&gt; modFit
+Random Forest 
+
+1964 samples
+ 53 predictors
+  5 classes: &#39;A&#39;, &#39;B&#39;, &#39;C&#39;, &#39;D&#39;, &#39;E&#39; 
+
+No pre-processing
+Resampling: Bootstrapped (25 reps) 
+
+Summary of sample sizes: 1964, 1964, 1964, 1964, 1964, 1964, ... 
+
+Resampling results across tuning parameters:
+
+ mtry  Accuracy  Kappa  Accuracy SD  Kappa SD
+ 2     0.922     0.901  0.0124       0.0156  
+ 27    0.948     0.935  0.0101       0.0128  
+ 53    0.938     0.922  0.0105       0.0132  
+
+Accuracy was used to select the optimal model using  the largest value.
+The final value used for the model was mtry = 27. 
+</code></pre>
+
+<p>If I used 0.948 for 20 predictions, the probability of having no erros was</p>
+
+<blockquote>
+<p>0.948**20 = 0.343</p>
+</blockquote>
+
+<p>It looked not good. Then I used 30% of pml_train, and I got</p>
+
+<pre><code>&gt; modFit &lt;- train(trSet$classe ~., data=pml_train, method=&quot;rf&quot;)
+&gt; modFit
+Random Forest 
+
+5889 samples
+ 53 predictors
+  5 classes: &#39;A&#39;, &#39;B&#39;, &#39;C&#39;, &#39;D&#39;, &#39;E&#39; 
+(snip)
+ mtry  Accuracy  Kappa  Accuracy SD  Kappa SD
+ 2     0.977     0.97   0.00381      0.00482 
+ 27    0.985     0.981  0.00246      0.00311 
+ 53    0.978     0.973  0.00574      0.00724 
+</code></pre>
+
+<p>Here the probability of the full mark was</p>
+
+<blockquote>
+<p>0.985**20 = 0.739</p>
+</blockquote>
+
+<p>It was better than the last one, but enough to go ahead?</p>
+
+<p>According to the statement for submission, we could submit an answer for each problem up to 2 times.
+Considering that, I used the last model for 20 predictions.</p>
+
+</body>
+
+</html>
+
